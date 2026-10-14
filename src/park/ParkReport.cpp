@@ -7,6 +7,21 @@ ParkReport::ParkReport(const Park& park) : park_(park) {}
 std::size_t ParkReport::countUnits() const {
     return park_.count();
 }
+std::size_t ParkReport::countTransports() const {
+    std::size_t count = 0;
+
+    for (const Inventoriable* item : park_.all()) {
+        if (dynamic_cast<const Transport*>(item) != nullptr) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+std::size_t ParkReport::countInventoryItems() const {
+    return countUnits() - countTransports();
+}
 
 double ParkReport::totalDailyEnergyKwh() const {
     double total = 0.0;

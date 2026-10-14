@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "app/ConsoleApp.h"
 #include "enums/EquipmentCondition.h"
 #include "inspection/ServiceCenter.h"
 #include "models/items/ChargingStation.h"
@@ -13,18 +14,12 @@
 #include "models/transport/ElectricBicycle.h"
 #include "models/transport/ElectricScooter.h"
 #include "models/transport/Scooter.h"
+#include "park/Park.h"
+#include "park/ParkReport.h"
+#include "park/ParkService.h"
+#include "reader/ConsoleInputReader.h"
 
 namespace {
-
-std::unique_ptr<InspectionService> requireService(
-    std::unique_ptr<InspectionService> service
-) {
-    if (!service) {
-        throw std::invalid_argument("Inspection service cannot be null");
-    }
-
-    return service;
-}
 
 EquipmentCondition readCondition(InputReader& input) {
     const int choice = input.readInt(
@@ -80,32 +75,67 @@ TransportInput readTransport(InputReader& input) {
 
 }  // namespace
 
-AppContainer::AppContainer()
-    : AppContainer(std::make_unique<ServiceCenter>()) {}
+AppContainer::AppContainer() {
+    registerServices();
+}
 
-AppContainer::AppContainer(std::unique_ptr<InspectionService> inspectionService)
-    : inspectionService_(requireService(std::move(inspectionService))),
-      parkService_(park_, *inspectionService_),
-      parkReport_(park_),
-      consoleApp_(
-          parkService_,
-          parkReport_,
-          transportFactory_,
-          itemFactory_,
-          input_
-      ) {}
-
-void AppContainer::configure() {
-    registerTransportTypes();
-    registerItemTypes();
+DiContainer& AppContainer::services() {
+    return container_;
 }
 
 void AppContainer::run() {
-    consoleApp_.run();
+    container_.resolve<ConsoleApp>()->run();
 }
 
-void AppContainer::registerTransportTypes() {
-    transportFactory_.registerType("Самокат", [](InputReader& input) {
+void AppContainer::registerServices() {
+    container_.registerType<Park>([](DiContainer&) {
+        return std::make_shared<Park>();
+    });
+
+    container_.registerType<InspectionService>([](DiContainer&) {
+        return std::make_shared<ServiceCenter>();
+    });
+
+    container_.registerType<InputReader>([](DiContainer&) {
+        return std::make_shared<ConsoleInputReader>();
+    });
+
+    container_.registerType<ParkService>([](DiContainer& container) {
+        return std::make_shared<ParkService>(
+            *container.resolve<Park>(),
+            *container.resolve<InspectionService>()
+        );
+    });
+
+    container_.registerType<ParkReport>([](DiContainer& container) {
+        return std::make_shared<ParkReport>(*container.resolve<Park>());
+    });
+
+    container_.registerType<TransportFactory>([](DiContainer&) {
+        auto factory = std::make_shared<TransportFactory>();
+        AppContainer::registerTransportTypes(*factory);
+        return factory;
+    });
+
+    container_.registerType<ItemFactory>([](DiContainer&) {
+        auto factory = std::make_shared<ItemFactory>();
+        AppContainer::registerItemTypes(*factory);
+        return factory;
+    });
+
+    container_.registerType<ConsoleApp>([](DiContainer& container) {
+        return std::make_shared<ConsoleApp>(
+            *container.resolve<ParkService>(),
+            *container.resolve<ParkReport>(),
+            *container.resolve<TransportFactory>(),
+            *container.resolve<ItemFactory>(),
+            *container.resolve<InputReader>()
+        );
+    });
+}
+
+void AppContainer::registerTransportTypes(TransportFactory& factory) {
+    factory.registerType("Самокат", [](InputReader& input) {
         const TransportInput data = readTransport(input);
 
         return std::make_unique<Scooter>(
@@ -117,7 +147,7 @@ void AppContainer::registerTransportTypes() {
         );
     });
 
-    transportFactory_.registerType("Велосипед", [](InputReader& input) {
+    factory.registerType("Велосипед", [](InputReader& input) {
         const TransportInput data = readTransport(input);
 
         return std::make_unique<Bicycle>(
@@ -129,7 +159,7 @@ void AppContainer::registerTransportTypes() {
         );
     });
 
-    transportFactory_.registerType("Электросамокат", [](InputReader& input) {
+    factory.registerType("Электросамокат", [](InputReader& input) {
         const TransportInput data = readTransport(input);
         const double dailyEnergyKwh =
             input.readDouble("Расход энергии, кВт·ч в сутки: ");
@@ -144,7 +174,7 @@ void AppContainer::registerTransportTypes() {
         );
     });
 
-    transportFactory_.registerType("Электровелосипед", [](InputReader& input) {
+    factory.registerType("Электровелосипед", [](InputReader& input) {
         const TransportInput data = readTransport(input);
         const double dailyEnergyKwh =
             input.readDouble("Расход энергии, кВт·ч в сутки: ");
@@ -160,8 +190,8 @@ void AppContainer::registerTransportTypes() {
     });
 }
 
-void AppContainer::registerItemTypes() {
-    itemFactory_.registerType("Шлем", [](InputReader& input) {
+void AppContainer::registerItemTypes(ItemFactory& factory) {
+    factory.registerType("Шлем", [](InputReader& input) {
         const CommonInput common = readCommon(input);
         const std::string size = input.readString("Размер: ");
 
@@ -170,7 +200,7 @@ void AppContainer::registerItemTypes() {
         );
     });
 
-    itemFactory_.registerType("Зарядная станция", [](InputReader& input) {
+    factory.registerType("Зарядная станция", [](InputReader& input) {
         const CommonInput common = readCommon(input);
         const double dailyEnergyKwh =
             input.readDouble("Расход энергии, кВт·ч в сутки: ");
@@ -183,7 +213,7 @@ void AppContainer::registerItemTypes() {
         );
     });
 
-    itemFactory_.registerType("Док-станция", [](InputReader& input) {
+    factory.registerType("Док-станция", [](InputReader& input) {
         const CommonInput common = readCommon(input);
 
         return std::make_unique<DockingStation>(

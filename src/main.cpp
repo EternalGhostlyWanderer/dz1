@@ -31,7 +31,6 @@ int main() {
 
     try {
         AppContainer container;
-        container.configure();
         container.run();
     } catch (const std::exception& error) {
         std::cerr << "Критическая ошибка: " << error.what() << "\n";

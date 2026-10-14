@@ -1,4 +1,4 @@
-#include "io/ConsoleInputReader.h"
+#include "ConsoleInputReader.h"
 
 #include <cstddef>
 #include <stdexcept>

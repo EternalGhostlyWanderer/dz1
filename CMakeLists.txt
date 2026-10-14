@@ -6,49 +6,41 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Исходники и строки в UTF-8. MSVC без этого флага читает файлы в системной
-# кодировке, и русские строки превращаются в мусор.
+option(VYSHKAT_BUILD_TESTS "Build unit tests" ON)
+option(VYSHKAT_COVERAGE "Instrument code for coverage (GCC/Clang)" OFF)
+
+# Общие флаги только для наших целей (не для GoogleTest).
+# /utf-8: без него MSVC читает исходники в системной кодировке, и русские
+# строки превращаются в мусор.
+add_library(vyshkat_options INTERFACE)
+
 if(MSVC)
-    add_compile_options(/utf-8 /W4)
+    target_compile_options(vyshkat_options INTERFACE /utf-8 /W4)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+    target_compile_options(vyshkat_options INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
-# Вся логика приложения лежит в библиотеке: её используют и программа, и тесты.
+if(VYSHKAT_COVERAGE AND NOT MSVC)
+    target_compile_options(vyshkat_options INTERFACE --coverage -O0 -g)
+    target_link_options(vyshkat_options INTERFACE --coverage)
+endif()
+
+# Вся логика приложения лежит в библиотеке: её используют программа и тесты.
 file(GLOB_RECURSE VYSHKAT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 list(FILTER VYSHKAT_SOURCES EXCLUDE REGEX ".*/src/main\\.cpp$")
 
-add_library(vyshkat_core STATIC ${VYSHKAT_SOURCES}
-        src/factory/TransportFactory.h
-        src/app/AppContainer.cpp
-        src/app/AppContainer.h
-        src/app/DemoData.cpp
-        src/app/DemoData.h)
+add_library(vyshkat_core STATIC ${VYSHKAT_SOURCES})
 target_include_directories(vyshkat_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(vyshkat_core PUBLIC vyshkat_options)
 
 # Консольное приложение.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-    add_executable(vyshkat src/main.cpp
-            src/interfaces/InspectionService.h
-            src/inspection/Inspection.cpp
-            src/inspection/Inspection.h
-            src/inspection/ServiceCenter.cpp
-            src/inspection/ServiceCenter.h
-            src/park/Park.cpp
-            src/park/Park.h
-            src/park/ParkService.cpp
-            src/park/ParkService.h
-            src/park/ParkReport.cpp
-            src/park/ParkReport.h)
-    target_link_libraries(vyshkat PRIVATE vyshkat_core)
-endif()
+add_executable(vyshkat src/main.cpp)
+target_link_libraries(vyshkat PRIVATE vyshkat_core)
 
-# Юнит-тесты: подключаются, когда появится tests/CMakeLists.txt.
-option(VYSHKAT_BUILD_TESTS "Build unit tests" ON)
-
-if(VYSHKAT_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
+# Юнит-тесты.
+if(VYSHKAT_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()

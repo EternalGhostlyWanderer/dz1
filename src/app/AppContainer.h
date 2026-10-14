@@ -1,45 +1,27 @@
 #pragma once
 
-#include <memory>
-
-#include "app/ConsoleApp.h"
+#include "di/DiContainer.h"
 #include "factory/ItemFactory.h"
 #include "factory/TransportFactory.h"
-#include "interfaces/InspectionService.h"
-#include "park/Park.h"
-#include "park/ParkReport.h"
-#include "park/ParkService.h"
-#include "reader/ConsoleInputReader.h"
 
-// Composition root: единственное место, где создаются объекты и
-// связываются зависимости.
+// Composition root: регистрирует рабочие реализации в DI-контейнере и
+// запускает приложение. Любой сервис можно заменить через services()
+// до первого resolve() зависимых сервисов (так в тестах подменяется техосмотр).
 class AppContainer {
 public:
-    // Рабочая конфигурация: настоящий ServiceCenter.
     AppContainer();
-
-    // Подмена техосмотра (в тестах - заглушка).
-    explicit AppContainer(std::unique_ptr<InspectionService> inspectionService);
 
     AppContainer(const AppContainer&) = delete;
     AppContainer& operator=(const AppContainer&) = delete;
 
-    // Регистрирует виды транспорта и вещей в фабриках.
-    void configure();
+    DiContainer& services();
 
     void run();
 
 private:
-    // Порядок полей важен: зависимости объявлены раньше потребителей.
-    Park park_;
-    std::unique_ptr<InspectionService> inspectionService_;
-    ParkService parkService_;
-    ParkReport parkReport_;
-    TransportFactory transportFactory_;
-    ItemFactory itemFactory_;
-    ConsoleInputReader input_;
-    ConsoleApp consoleApp_;
+    DiContainer container_;
 
-    void registerTransportTypes();
-    void registerItemTypes();
+    void registerServices();
+    static void registerTransportTypes(TransportFactory& factory);
+    static void registerItemTypes(ItemFactory& factory);
 };

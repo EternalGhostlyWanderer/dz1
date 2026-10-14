@@ -9,15 +9,15 @@
 
 #include "app/DemoData.h"
 
-namespace {
-
-std::string formatKwh(double value) {
-    std::ostringstream stream;
-    stream << std::fixed << std::setprecision(2) << value;
-    return stream.str();
-}
-
-}  // namespace
+namespace
+{
+    std::string formatKwh(double value)
+    {
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(2) << value;
+        return stream.str();
+    }
+} // namespace
 
 ConsoleApp::ConsoleApp(
     ParkService& parkService,
@@ -30,54 +30,72 @@ ConsoleApp::ConsoleApp(
       parkReport_(parkReport),
       transportFactory_(transportFactory),
       itemFactory_(itemFactory),
-      input_(input) {}
+      input_(input)
+{
+}
 
-void ConsoleApp::run() {
-    try {
-        while (true) {
+void ConsoleApp::run()
+{
+    std::cout << "============================================\n";
+    std::cout << "  Добро пожаловать в систему «ВышКат»!\n";
+    std::cout << "============================================\n";
+    std::cout << "Программа предназначена для учёта парка.\n";
+    std::cout << "Здесь можно принимать транспорт и вещи,\n";
+    std::cout << "контролировать состояние имущества и\n";
+    std::cout << "формировать отчёты по парку.\n\n";
+    std::cout << "Выберите действие в меню.\n";
+    std::cout << "Для выхода из программы введите 0.\n\n";
+    try
+    {
+        while (true)
+        {
             printMenu();
 
             const int choice = input_.readInt("Ваш выбор: ");
 
-            switch (choice) {
-                case 0:
-                    std::cout << "Завершение программы.\n";
-                    return;
-                case 1:
-                    handleAddTransport();
-                    break;
-                case 2:
-                    handleAddInventoryItem();
-                    break;
-                case 3:
-                    handleRemoveItem();
-                    break;
-                case 4:
-                    printCounts();
-                    break;
-                case 5:
-                    printEnergyReport();
-                    break;
-                case 6:
-                    printBeginnerList();
-                    break;
-                case 7:
-                    printInventoryList();
-                    break;
-                case 8:
-                    handleDemo();
-                    break;
-                default:
-                    std::cout << "Неизвестная команда. Попробуйте ещё раз.\n";
-                    break;
+            switch (choice)
+            {
+            case 0:
+                std::cout << "Завершение программы.\n";
+                return;
+            case 1:
+                handleAddTransport();
+                break;
+            case 2:
+                handleAddInventoryItem();
+                break;
+            case 3:
+                handleRemoveItem();
+                break;
+            case 4:
+                printCounts();
+                break;
+            case 5:
+                printEnergyReport();
+                break;
+            case 6:
+                printBeginnerList();
+                break;
+            case 7:
+                printInventoryList();
+                break;
+            case 8:
+                handleDemo();
+                break;
+            default:
+                std::cout << "Неизвестная команда. Попробуйте ещё раз.\n";
+                break;
             }
         }
-    } catch (const InputEnded&) {
+    }
+    catch (const InputEnded&)
+    {
         std::cout << "\nВвод завершён. Завершение программы.\n";
     }
 }
 
-void ConsoleApp::printMenu() const {
+void ConsoleApp::printMenu() const
+{
     std::cout << "\n";
     std::cout << "========== ВышКат ==========\n";
     std::cout << "1. Принять транспорт\n";
@@ -92,19 +110,24 @@ void ConsoleApp::printMenu() const {
 }
 
 template <typename T>
-void ConsoleApp::addFrom(const Factory<T>& factory, const std::string& title) {
+void ConsoleApp::addFrom(const Factory<T>& factory, const std::string& title)
+{
     const std::vector<std::string> types = factory.types();
     const int index = chooseType(types, title);
 
-    if (index < 0) {
+    if (index < 0)
+    {
         return;
     }
 
     std::unique_ptr<Asset> item;
 
-    try {
+    try
+    {
         item = factory.create(types[static_cast<std::size_t>(index)], input_);
-    } catch (const std::invalid_argument& error) {
+    }
+    catch (const std::invalid_argument& error)
+    {
         std::cout << "Не удалось создать объект: " << error.what() << "\n";
         return;
     }
@@ -112,16 +135,32 @@ void ConsoleApp::addFrom(const Factory<T>& factory, const std::string& title) {
     submit(std::move(item));
 }
 
-void ConsoleApp::handleAddTransport() {
+void ConsoleApp::handleAddTransport()
+{
     addFrom(transportFactory_, "Виды транспорта");
 }
 
-void ConsoleApp::handleAddInventoryItem() {
+void ConsoleApp::handleAddInventoryItem()
+{
     addFrom(itemFactory_, "Виды вещей");
 }
 
 void ConsoleApp::handleRemoveItem() {
-    const std::string number = input_.readString("Инвентарный номер: ");
+    if (parkReport_.countUnits() == 0) {
+        std::cout << "Парк пуст, удалять нечего.\n";
+        return;
+    }
+
+    printInventoryList();
+
+    const std::string number = input_.readString(
+        "Инвентарный номер для удаления (Enter - отмена): "
+    );
+
+    if (number.empty()) {
+        std::cout << "Удаление отменено.\n";
+        return;
+    }
 
     if (parkService_.removeItem(number)) {
         std::cout << "Объект " << number << " удалён из парка.\n";
@@ -130,12 +169,14 @@ void ConsoleApp::handleRemoveItem() {
     }
 }
 
-void ConsoleApp::handleDemo() {
+void ConsoleApp::handleDemo()
+{
     std::cout << "\n--- Демонстрационный сценарий ---\n";
 
     std::vector<std::unique_ptr<Asset>> assets = makeDemoAssets();
 
-    for (auto& asset : assets) {
+    for (auto& asset : assets)
+    {
         submit(std::move(asset));
     }
 
@@ -147,61 +188,73 @@ void ConsoleApp::handleDemo() {
 }
 
 void ConsoleApp::printCounts() const {
-    std::cout << "Единиц в парке: " << parkReport_.countUnits() << "\n";
+    std::cout << "Всего на балансе: " << parkReport_.countUnits() << "\n"
+              << "  транспорт: " << parkReport_.countTransports() << "\n"
+              << "  вещи: " << parkReport_.countInventoryItems() << "\n";
 }
 
-void ConsoleApp::printEnergyReport() const {
+void ConsoleApp::printEnergyReport() const
+{
     std::cout << "Суммарное суточное потребление энергии: "
-              << formatKwh(parkReport_.totalDailyEnergyKwh()) << " кВт·ч\n";
+        << formatKwh(parkReport_.totalDailyEnergyKwh()) << " кВт·ч\n";
 }
 
-void ConsoleApp::printBeginnerList() const {
+void ConsoleApp::printBeginnerList() const
+{
     const auto transports = parkReport_.beginnerFriendly();
 
     std::cout << "Техника для новичков (простота не ниже "
-              << ParkReport::kBeginnerMinSimplicity << "):\n";
+        << ParkReport::kBeginnerMinSimplicity << "):\n";
 
-    if (transports.empty()) {
+    if (transports.empty())
+    {
         std::cout << "  подходящей техники нет\n";
         return;
     }
 
-    for (const Transport* transport : transports) {
+    for (const Transport* transport : transports)
+    {
         std::cout << "  " << transport->getInventoryNumber()
-                  << " - " << transport->getName()
-                  << " (" << transport->getModel() << ")"
-                  << ", простота " << transport->getSimplicity() << "\n";
+            << " - " << transport->getName()
+            << " (" << transport->getModel() << ")"
+            << ", простота " << transport->getSimplicity() << "\n";
     }
 }
 
-void ConsoleApp::printInventoryList() const {
+void ConsoleApp::printInventoryList() const
+{
     const auto items = parkReport_.listAll();
 
     std::cout << "Инвентарные номера:\n";
 
-    if (items.empty()) {
+    if (items.empty())
+    {
         std::cout << "  парк пуст\n";
         return;
     }
 
-    for (const Inventoriable* item : items) {
+    for (const Inventoriable* item : items)
+    {
         std::cout << "  " << item->getInventoryNumber()
-                  << " - " << item->getName() << "\n";
+            << " - " << item->getName() << "\n";
     }
 }
 
 int ConsoleApp::chooseType(
     const std::vector<std::string>& types,
     const std::string& title
-) const {
-    if (types.empty()) {
+) const
+{
+    if (types.empty())
+    {
         std::cout << "Нет зарегистрированных видов.\n";
         return -1;
     }
 
     std::cout << "\n" << title << ":\n";
 
-    for (std::size_t i = 0; i < types.size(); ++i) {
+    for (std::size_t i = 0; i < types.size(); ++i)
+    {
         std::cout << i + 1 << ". " << types[i] << "\n";
     }
 
@@ -209,11 +262,13 @@ int ConsoleApp::chooseType(
 
     const int choice = input_.readInt("Выберите вид: ");
 
-    if (choice == 0) {
+    if (choice == 0)
+    {
         return -1;
     }
 
-    if (choice < 0 || choice > static_cast<int>(types.size())) {
+    if (choice < 0 || choice > static_cast<int>(types.size()))
+    {
         std::cout << "Нет такого вида.\n";
         return -1;
     }
@@ -221,22 +276,29 @@ int ConsoleApp::chooseType(
     return choice - 1;
 }
 
-void ConsoleApp::submit(std::unique_ptr<Asset> item) {
+void ConsoleApp::submit(std::unique_ptr<Asset> item)
+{
     const std::string description = item->getKind() + " \"" +
-                                    item->getName() + "\" (" +
-                                    item->getInventoryNumber() + ")";
+        item->getName() + "\" (" +
+        item->getInventoryNumber() + ")";
 
-    try {
+    try
+    {
         const Inspection inspection = parkService_.accept(std::move(item));
 
-        if (inspection.isPassed()) {
+        if (inspection.isPassed())
+        {
             std::cout << description
-                      << ": техосмотр пройден, принят в парк.\n";
-        } else {
-            std::cout << description
-                      << ": техосмотр не пройден, в парк не принят.\n";
+                << ": техосмотр пройден, принят в парк.\n";
         }
-    } catch (const std::invalid_argument& error) {
+        else
+        {
+            std::cout << description
+                << ": техосмотр не пройден, в парк не принят.\n";
+        }
+    }
+    catch (const std::invalid_argument& error)
+    {
         std::cout << description << ": не принят. " << error.what() << "\n";
     }
 }
