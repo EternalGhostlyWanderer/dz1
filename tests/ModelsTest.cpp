@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -10,38 +11,34 @@
 
 TEST(TransportTest, StoresConstructorData) {
     const Scooter scooter(
-        "SC-1", "City scooter", "S1", EquipmentCondition::NEW, 7);
+        "SC-1", "City scooter", EquipmentCondition::NEW, 7);
 
     EXPECT_EQ(scooter.getInventoryNumber(), "SC-1");
     EXPECT_EQ(scooter.getName(), "City scooter");
-    EXPECT_EQ(scooter.getModel(), "S1");
     EXPECT_TRUE(scooter.getCondition() == EquipmentCondition::NEW);
     EXPECT_EQ(scooter.getSimplicity(), 7);
 }
 
 TEST(TransportTest, AcceptsSimplicityBoundaries) {
-    EXPECT_NO_THROW(Scooter("A", "n", "m", EquipmentCondition::GOOD, 1));
-    EXPECT_NO_THROW(Scooter("A", "n", "m", EquipmentCondition::GOOD, 10));
+    EXPECT_NO_THROW(Scooter("A", "n", EquipmentCondition::GOOD, 1));
+    EXPECT_NO_THROW(Scooter("A", "n", EquipmentCondition::GOOD, 10));
 }
 
 TEST(TransportTest, RejectsSimplicityOutOfRange) {
     EXPECT_THROW(
-        Scooter("A", "n", "m", EquipmentCondition::GOOD, 0),
+        Scooter("A", "n", EquipmentCondition::GOOD, 0),
         std::invalid_argument);
     EXPECT_THROW(
-        Scooter("A", "n", "m", EquipmentCondition::GOOD, 11),
+        Scooter("A", "n", EquipmentCondition::GOOD, 11),
         std::invalid_argument);
 }
 
 TEST(TransportTest, RejectsEmptyFields) {
     EXPECT_THROW(
-        Scooter("", "n", "m", EquipmentCondition::GOOD, 5),
+        Scooter("", "n", EquipmentCondition::GOOD, 5),
         std::invalid_argument);
     EXPECT_THROW(
-        Scooter("A", "", "m", EquipmentCondition::GOOD, 5),
-        std::invalid_argument);
-    EXPECT_THROW(
-        Scooter("A", "n", "", EquipmentCondition::GOOD, 5),
+        Scooter("A", "", EquipmentCondition::GOOD, 5),
         std::invalid_argument);
 }
 
@@ -55,14 +52,37 @@ TEST(EnergyTest, ElectricTransportReportsDailyEnergy) {
 
 TEST(EnergyTest, RejectsNegativeEnergy) {
     EXPECT_THROW(
-        ElectricScooter("A", "n", "m", EquipmentCondition::GOOD, 5, -0.1),
+        ElectricScooter("A", "n", EquipmentCondition::GOOD, 5, -0.1),
         std::invalid_argument);
     EXPECT_THROW(
-        ElectricBicycle("A", "n", "m", EquipmentCondition::GOOD, 5, -0.1),
+        ElectricBicycle("A", "n", EquipmentCondition::GOOD, 5, -0.1),
         std::invalid_argument);
     EXPECT_THROW(
         ChargingStation("A", "n", EquipmentCondition::GOOD, -0.1),
         std::invalid_argument);
+}
+
+TEST(EnergyTest, RejectsNonNumericAndInfiniteEnergy) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+
+    EXPECT_THROW(
+        ElectricScooter("A", "n", EquipmentCondition::GOOD, 5, nan),
+        std::invalid_argument);
+    EXPECT_THROW(
+        ElectricBicycle("A", "n", EquipmentCondition::GOOD, 5, inf),
+        std::invalid_argument);
+    EXPECT_THROW(
+        ChargingStation("A", "n", EquipmentCondition::GOOD, nan),
+        std::invalid_argument);
+    EXPECT_THROW(
+        ChargingStation("A", "n", EquipmentCondition::GOOD, inf),
+        std::invalid_argument);
+}
+
+TEST(EnergyTest, ZeroEnergyIsAllowed) {
+    EXPECT_NO_THROW(
+        ChargingStation("A", "n", EquipmentCondition::GOOD, 0.0));
 }
 
 TEST(EnergyTest, OnlyEnergyConsumersExposeTheInterface) {
@@ -103,4 +123,26 @@ TEST(ItemTest, EveryKindHasItsOwnNonEmptyName) {
     }
 
     EXPECT_EQ(kinds.size(), 7U);
+}
+TEST(AssetTest, RejectsNegativeNumericInventoryNumber) {
+    EXPECT_THROW(
+        Scooter("-5", "Test scooter", EquipmentCondition::GOOD, 7),
+        std::invalid_argument);
+    EXPECT_THROW(
+        Scooter("  -5  ", "Test scooter", EquipmentCondition::GOOD, 7),
+        std::invalid_argument);
+}
+
+TEST(AssetTest, AllowsStringInventoryNumbersAndTrimsSurroundingSpaces) {
+    const Scooter scooter(
+        "  SC-005  ", "  Test scooter  ", EquipmentCondition::GOOD, 7);
+
+    EXPECT_EQ(scooter.getInventoryNumber(), "SC-005");
+    EXPECT_EQ(scooter.getName(), "Test scooter");
+}
+
+TEST(AssetTest, RejectsInventoryNumberContainingOnlySpaces) {
+    EXPECT_THROW(
+        Scooter("   ", "Test scooter", EquipmentCondition::GOOD, 7),
+        std::invalid_argument);
 }

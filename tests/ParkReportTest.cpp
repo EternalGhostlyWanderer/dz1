@@ -52,6 +52,33 @@ TEST_F(ParkReportTest, CountsTransportAndItemsTogether) {
     EXPECT_EQ(report.countUnits(), 4U);
 }
 
+TEST_F(ParkReportTest, CountsTransportAndItemsSeparately) {
+    add(makeScooter("SC-1"));
+    add(makeElectricBicycle("EB-1"));
+    add(makeHelmet("HM-1"));
+    add(makeDockingStation("DS-1"));
+    add(makeChargingStation("CS-1"));
+
+    EXPECT_EQ(report.countUnits(), 5U);
+    EXPECT_EQ(report.countTransports(), 2U);
+    EXPECT_EQ(report.countInventoryItems(), 3U);
+}
+
+TEST_F(ParkReportTest, SeparateCountsAreZeroForEmptyPark) {
+    EXPECT_EQ(report.countTransports(), 0U);
+    EXPECT_EQ(report.countInventoryItems(), 0U);
+}
+
+TEST_F(ParkReportTest, SeparateCountsFollowRemovals) {
+    add(makeScooter("SC-1"));
+    add(makeHelmet("HM-1"));
+
+    park.removeByInventoryNumber("HM-1");
+
+    EXPECT_EQ(report.countTransports(), 1U);
+    EXPECT_EQ(report.countInventoryItems(), 0U);
+}
+
 TEST_F(ParkReportTest, SumsEnergyOfTransportAndChargingStation) {
     add(makeElectricScooter("ES-1", 8, 0.6));
     add(makeElectricBicycle("EB-1", 5, 1.2));

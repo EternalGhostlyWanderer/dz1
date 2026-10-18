@@ -5,14 +5,12 @@
 Scooter::Scooter(
     std::string inventoryNumber,
     std::string name,
-    std::string model,
     EquipmentCondition condition,
     int simplicity
 )
     : Transport(
           std::move(inventoryNumber),
           std::move(name),
-          std::move(model),
           condition,
           simplicity
       ) {}

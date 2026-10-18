@@ -17,6 +17,22 @@
 // Сценарии консоли: ввод подменяется FakeInputReader, вывод перехватывается.
 // Пункты меню: 1 - принять транспорт, 2 - принять вещь, 3 - удалить,
 // 8 - демонстрация, 0 - выход.
+namespace {
+
+std::size_t countOccurrences(const std::string& text, const std::string& part) {
+    std::size_t count = 0;
+    std::size_t position = text.find(part);
+
+    while (position != std::string::npos) {
+        ++count;
+        position = text.find(part, position + part.size());
+    }
+
+    return count;
+}
+
+}  // namespace
+
 class ConsoleAppTest : public ::testing::Test {
 protected:
     Park park;
@@ -32,7 +48,7 @@ protected:
             const int simplicity = input.readInt("");
 
             return std::make_unique<Scooter>(
-                number, "Scooter", "Model", EquipmentCondition::GOOD,
+                number, "Scooter", EquipmentCondition::GOOD,
                 simplicity);
         });
 
@@ -99,11 +115,33 @@ TEST_F(ConsoleAppTest, DuplicateInventoryNumberIsRefused) {
     EXPECT_EQ(park.count(), 1U);
 }
 
-TEST_F(ConsoleAppTest, OutOfRangeTypeChoiceChangesNothing) {
-    EXPECT_NO_THROW(run({"1", "7", "0"}));
-    EXPECT_EQ(park.count(), 0U);
+TEST_F(ConsoleAppTest, OutOfRangeTypeChoiceShowsMenuAgain) {
+    const std::string output = run({"1", "7", "1", "SC-1", "8", "0"});
+
+    EXPECT_EQ(park.count(), 1U);
+    EXPECT_NE(
+        output.find("Нет такого вида. Попробуйте ещё раз."),
+        std::string::npos
+    );
+    EXPECT_GE(countOccurrences(output, "Выберите вид:"), 2U);
 }
 
+TEST_F(ConsoleAppTest, ShowsReasonWhenInspectionRejectsItem) {
+    const std::string output = run({"2", "1", "HM-1", "0"});
+
+    EXPECT_NE(
+        output.find("техосмотр не пройден"),
+        std::string::npos
+    );
+    EXPECT_NE(
+        output.find("Причина: устройство сломано"),
+        std::string::npos
+    );
+    EXPECT_NE(
+        output.find("В парк не принят"),
+        std::string::npos
+    );
+}
 TEST_F(ConsoleAppTest, BackFromTypeListChangesNothing) {
     EXPECT_NO_THROW(run({"1", "0", "0"}));
     EXPECT_EQ(park.count(), 0U);
@@ -119,6 +157,31 @@ TEST_F(ConsoleAppTest, RemovingMissingItemIsHarmless) {
     run({"1", "1", "SC-1", "8", "3", "NOPE", "0"});
 
     EXPECT_EQ(park.count(), 1U);
+}
+
+TEST_F(ConsoleAppTest, EmptyEnterCancelsRemoval) {
+    const std::string output = run({"1", "1", "SC-1", "8", "3", "", "0"});
+
+    EXPECT_EQ(park.count(), 1U);
+    // Отмена не должна выглядеть как неудачный поиск объекта.
+    EXPECT_TRUE(output.find("не найден") == std::string::npos);
+}
+
+TEST_F(ConsoleAppTest, RemovalShowsParkContentsBeforeAskingForNumber) {
+    // Номер SC-1 печатается при приёмке один раз и ещё раз в списке перед удалением.
+    const std::string output = run({"1", "1", "SC-1", "8", "3", "", "0"});
+
+    EXPECT_TRUE(countOccurrences(output, "SC-1") >= 2U);
+}
+
+TEST_F(ConsoleAppTest, RemovalFromEmptyParkDoesNotAskForNumber) {
+    FakeInputReader input({"3", "0", "unused"});
+    ConsoleApp app(service, report, transports, items, input);
+    CoutCapture capture;
+
+    app.run();
+
+    EXPECT_EQ(input.remaining(), 1U);
 }
 
 TEST_F(ConsoleAppTest, ReportsDoNotChangeThePark) {
@@ -139,29 +202,69 @@ TEST_F(ConsoleAppTest, InventoryListShowsNumbers) {
     EXPECT_TRUE(output.find("SC-1") != std::string::npos);
 }
 
-TEST_F(ConsoleAppTest, DemoAcceptsOnlyItemsThatPassInspection) {
+TEST_F(ConsoleAppTest, DemoRejectsEveryKindOfBadItem) {
     run({"8", "0"});
 
-    EXPECT_EQ(park.count(), 7U);
-    EXPECT_TRUE(park.findByInventoryNumber("EB-002") == nullptr);
-    EXPECT_TRUE(park.findByInventoryNumber("HM-002") == nullptr);
+    EXPECT_TRUE(park.findByInventoryNumber("HM-002") == nullptr);  // списан
+    EXPECT_TRUE(park.findByInventoryNumber("SC-002") == nullptr);  // нужен ремонт
 }
 
-TEST_F(ConsoleAppTest, DemoShowsEnergyAndNumbers) {
+TEST_F(ConsoleAppTest, DemoAcceptsRejectedItemAgainAfterRepair) {
+    run({"8", "0"});
+
+    const Inventoriable* repaired = park.findByInventoryNumber("EB-002");
+
+    ASSERT_TRUE(repaired != nullptr);
+    EXPECT_TRUE(repaired->getCondition() == EquipmentCondition::GOOD);
+}
+
+TEST_F(ConsoleAppTest, DemoRemovesChargingStation) {
+    run({"8", "0"});
+
+    EXPECT_TRUE(park.findByInventoryNumber("CS-001") == nullptr);
+    EXPECT_EQ(park.count(), 8U);
+}
+
+TEST_F(ConsoleAppTest, DemoShowsEnergyBeforeAndAfterChanges) {
     const std::string output = run({"8", "0"});
 
     EXPECT_TRUE(output.find("5.30") != std::string::npos);
+    EXPECT_TRUE(output.find("3.00") != std::string::npos);
+}
+
+TEST_F(ConsoleAppTest, DemoShowsInventoryNumbers) {
+    const std::string output = run({"8", "0"});
+
     EXPECT_TRUE(output.find("SC-001") != std::string::npos);
     EXPECT_TRUE(output.find("CS-001") != std::string::npos);
 }
 
-TEST_F(ConsoleAppTest, DemoPicksTwoTransportsForBeginners) {
+TEST_F(ConsoleAppTest, DemoPicksThreeTransportsForBeginnersIncludingBoundary) {
     run({"8", "0"});
 
-    EXPECT_EQ(report.beginnerFriendly().size(), 2U);
+    const auto beginnerTransports = report.beginnerFriendly();
+
+    ASSERT_EQ(beginnerTransports.size(), 3U);
+    // BC-002 имеет простоту ровно 6: граница правила.
+    bool boundaryIncluded = false;
+
+    for (const Transport* transport : beginnerTransports) {
+        if (transport->getInventoryNumber() == "BC-002") {
+            boundaryIncluded = true;
+        }
+    }
+
+    EXPECT_TRUE(boundaryIncluded);
+}
+
+TEST_F(ConsoleAppTest, DemoSplitsCountsIntoTransportAndItems) {
+    run({"8", "0"});
+
+    EXPECT_EQ(report.countTransports(), 6U);
+    EXPECT_EQ(report.countInventoryItems(), 2U);
 }
 
 TEST_F(ConsoleAppTest, DemoCanBeRunTwiceWithoutDuplicates) {
     EXPECT_NO_THROW(run({"8", "8", "0"}));
-    EXPECT_EQ(park.count(), 7U);
+    EXPECT_EQ(park.count(), 8U);
 }

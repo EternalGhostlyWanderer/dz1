@@ -8,12 +8,12 @@ ParkService::ParkService(Park& park, InspectionService& inspectionService)
 
 Inspection ParkService::accept(std::unique_ptr<Inventoriable> item) {
     if (!item) {
-        throw std::invalid_argument("Item cannot be null");
+        throw std::invalid_argument("Объект не задан");
     }
 
     if (park_.findByInventoryNumber(item->getInventoryNumber()) != nullptr) {
         throw std::invalid_argument(
-            "Inventory number is already in the park: " +
+            "Инвентарный номер уже есть в парке: " +
             item->getInventoryNumber()
         );
     }

@@ -76,7 +76,7 @@ TEST_F(AppContainerTest, EveryRegisteredTransportTypeCanBeCreated) {
     int energyConsumers = 0;
 
     for (const std::string& type : types) {
-        FakeInputReader input({"T-1", "Name", "2", "Model", "8", "1.5"});
+        FakeInputReader input({"T-1", "Name", "2", "8", "1.5"});
 
         const auto transport = factory->create(type, input);
 
@@ -119,7 +119,7 @@ TEST_F(AppContainerTest, EveryRegisteredItemTypeCanBeCreated) {
 TEST_F(AppContainerTest, CreatorRejectsUnknownCondition) {
     const auto factory = app.services().resolve<TransportFactory>();
     const auto types = factory->types();
-    FakeInputReader input({"T-1", "Name", "9", "Model", "8"});
+    FakeInputReader input({"T-1", "Name", "9"});
 
     EXPECT_THROW(factory->create(types.front(), input), std::invalid_argument);
 }

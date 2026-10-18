@@ -16,7 +16,7 @@ Helmet::Helmet(
       ),
       size_(std::move(size)) {
     if (size_.empty()) {
-        throw std::invalid_argument("Helmet size cannot be empty");
+        throw std::invalid_argument("Размер шлема не может быть пустым");
     }
 }
 

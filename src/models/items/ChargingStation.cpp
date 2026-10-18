@@ -1,7 +1,8 @@
 #include "models/items/ChargingStation.h"
 
-#include <stdexcept>
 #include <utility>
+
+#include "models/Validation.h"
 
 ChargingStation::ChargingStation(
     std::string inventoryNumber,
@@ -15,11 +16,7 @@ ChargingStation::ChargingStation(
           condition
       ),
       dailyEnergyKwh_(dailyEnergyKwh) {
-    if (dailyEnergyKwh_ < 0) {
-        throw std::invalid_argument(
-            "Daily energy consumption cannot be negative"
-        );
-    }
+    requireValidEnergy(dailyEnergyKwh_);
 }
 
 double ChargingStation::getDailyEnergyKwh() const {

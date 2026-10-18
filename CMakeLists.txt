@@ -36,7 +36,8 @@ target_include_directories(vyshkat_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
 target_link_libraries(vyshkat_core PUBLIC vyshkat_options)
 
 # Консольное приложение.
-add_executable(vyshkat src/main.cpp)
+add_executable(vyshkat src/main.cpp
+        src/models/Validation.h)
 target_link_libraries(vyshkat PRIVATE vyshkat_core)
 
 # Юнит-тесты.

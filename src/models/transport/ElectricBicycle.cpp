@@ -1,12 +1,12 @@
 #include "models/transport/ElectricBicycle.h"
 
-#include <stdexcept>
 #include <utility>
+
+#include "models/Validation.h"
 
 ElectricBicycle::ElectricBicycle(
     std::string inventoryNumber,
     std::string name,
-    std::string model,
     EquipmentCondition condition,
     int simplicity,
     double dailyEnergyKwh
@@ -14,16 +14,11 @@ ElectricBicycle::ElectricBicycle(
     : Bicycle(
           std::move(inventoryNumber),
           std::move(name),
-          std::move(model),
           condition,
           simplicity
       ),
       dailyEnergyKwh_(dailyEnergyKwh) {
-    if (dailyEnergyKwh_ < 0) {
-        throw std::invalid_argument(
-            "Daily energy consumption cannot be negative"
-        );
-    }
+    requireValidEnergy(dailyEnergyKwh_);
 }
 
 double ElectricBicycle::getDailyEnergyKwh() const {

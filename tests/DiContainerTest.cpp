@@ -83,14 +83,6 @@ TEST_F(DiContainerTest, UnregisteredTypeIsRefused) {
     EXPECT_THROW(container.resolve<Greeter>(), std::logic_error);
 }
 
-TEST_F(DiContainerTest, ReportsWhetherTypeIsRegistered) {
-    EXPECT_FALSE(container.isRegistered<Greeter>());
-
-    container.registerInstance<Greeter>(std::make_shared<RealGreeter>());
-
-    EXPECT_TRUE(container.isRegistered<Greeter>());
-}
-
 TEST_F(DiContainerTest, ResolvesRegisteredInstance) {
     const auto instance = std::make_shared<FakeGreeter>();
     container.registerInstance<Greeter>(instance);

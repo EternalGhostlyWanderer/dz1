@@ -17,7 +17,7 @@ std::unique_ptr<Transport> createScooter(InputReader& input) {
     const int simplicity = input.readInt("");
 
     return std::make_unique<Scooter>(
-        number, "Scooter", "Model", EquipmentCondition::GOOD, simplicity);
+        number, "Scooter", EquipmentCondition::GOOD, simplicity);
 }
 
 }  // namespace
@@ -71,13 +71,6 @@ TEST_F(FactoryTest, EmptyCreatorIsRefused) {
     EXPECT_THROW(
         factory.registerType("scooter", TransportFactory::CreatorFunction()),
         std::invalid_argument);
-}
-
-TEST_F(FactoryTest, ReportsWhichTypesAreRegistered) {
-    factory.registerType("scooter", createScooter);
-
-    EXPECT_TRUE(factory.hasType("scooter"));
-    EXPECT_FALSE(factory.hasType("bicycle"));
 }
 
 TEST_F(FactoryTest, ListsTypesInAlphabeticalOrder) {

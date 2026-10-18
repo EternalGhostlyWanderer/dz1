@@ -9,4 +9,5 @@ public:
 
 private:
     bool isAllowed(const Inventoriable& item) const;
+    std::string rejectionReason(const Inventoriable& item) const;
 };

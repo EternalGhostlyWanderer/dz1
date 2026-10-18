@@ -9,7 +9,6 @@ public:
     Scooter(
         std::string inventoryNumber,
         std::string name,
-        std::string model,
         EquipmentCondition condition,
         int simplicity
     );

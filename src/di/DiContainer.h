@@ -50,12 +50,6 @@ public:
         registrations_[std::type_index(typeid(T))] = std::move(registration);
     }
 
-    template <typename T>
-    bool isRegistered() const {
-        return registrations_.find(std::type_index(typeid(T))) !=
-               registrations_.end();
-    }
-
     // Бросает std::logic_error, если тип не зарегистрирован или зависимости
     // образуют цикл.
     template <typename T>

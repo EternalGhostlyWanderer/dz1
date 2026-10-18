@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+
 #include "enums/EquipmentCondition.h"
 #include "interfaces/EnergyConsumer.h"
 #include "interfaces/Inventoriable.h"
@@ -13,7 +14,7 @@
 #include "models/transport/ElectricScooter.h"
 #include "models/transport/Scooter.h"
 
-// Быстрое создание тестовых объектов. По умолчанию объект исправен.
+// Короткие построители тестовых объектов. По умолчанию объект исправен.
 
 inline std::unique_ptr<Scooter> makeScooter(
     const std::string& number = "SC-1",
@@ -21,7 +22,7 @@ inline std::unique_ptr<Scooter> makeScooter(
     EquipmentCondition condition = EquipmentCondition::GOOD
 ) {
     return std::make_unique<Scooter>(
-        number, "Scooter", "Model", condition, simplicity);
+        number, "Scooter", condition, simplicity);
 }
 
 inline std::unique_ptr<Bicycle> makeBicycle(
@@ -30,7 +31,7 @@ inline std::unique_ptr<Bicycle> makeBicycle(
     EquipmentCondition condition = EquipmentCondition::GOOD
 ) {
     return std::make_unique<Bicycle>(
-        number, "Bicycle", "Model", condition, simplicity);
+        number, "Bicycle", condition, simplicity);
 }
 
 inline std::unique_ptr<ElectricScooter> makeElectricScooter(
@@ -40,7 +41,7 @@ inline std::unique_ptr<ElectricScooter> makeElectricScooter(
     EquipmentCondition condition = EquipmentCondition::GOOD
 ) {
     return std::make_unique<ElectricScooter>(
-        number, "Electric scooter", "Model", condition, simplicity,
+        number, "Electric scooter", condition, simplicity,
         dailyEnergyKwh);
 }
 
@@ -51,7 +52,7 @@ inline std::unique_ptr<ElectricBicycle> makeElectricBicycle(
     EquipmentCondition condition = EquipmentCondition::GOOD
 ) {
     return std::make_unique<ElectricBicycle>(
-        number, "Electric bicycle", "Model", condition, simplicity,
+        number, "Electric bicycle", condition, simplicity,
         dailyEnergyKwh);
 }
 

@@ -20,16 +20,16 @@ public:
 
     void registerType(const std::string& type, CreatorFunction creator) {
         if (type.empty()) {
-            throw std::invalid_argument("Type name cannot be empty");
+            throw std::invalid_argument("Название вида не может быть пустым");
         }
 
         if (!creator) {
-            throw std::invalid_argument("Creator cannot be empty");
+            throw std::invalid_argument("Создатель вида не задан");
         }
 
         if (!creators_.emplace(type, std::move(creator)).second) {
             throw std::invalid_argument(
-                "Type is already registered: " + type
+                "Вид уже зарегистрирован: " + type
             );
         }
     }
@@ -41,14 +41,10 @@ public:
         const auto it = creators_.find(type);
 
         if (it == creators_.end()) {
-            throw std::invalid_argument("Unknown type: " + type);
+            throw std::invalid_argument("Неизвестный вид: " + type);
         }
 
         return it->second(input);
-    }
-
-    bool hasType(const std::string& type) const {
-        return creators_.find(type) != creators_.end();
     }
 
     // Виды в алфавитном порядке, чтобы меню было стабильным.
